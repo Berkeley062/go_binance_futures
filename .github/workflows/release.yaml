@@ -4,8 +4,6 @@ on:
   workflow_dispatch:
   push:
     # 触发条件：当推送到 master 分支或创建新标签时运行
-    # branches:
-    #   - master
     tags:
       - 'v*'
 
@@ -27,40 +25,44 @@ jobs:
       with:
         go-version: 1.21.x  # 使用所需的 Go 版本
         cache: true
+
+    - name: Install Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18  # 使用所需的 Node.js 版本
+        cache: 'npm'
+
     - name: Install Bee tool
-      run: | # 安装 Bee 工具
+      run: |
         go install github.com/beego/bee/v2@latest
 
-    # - name: Build for multiple platforms
-    #   env:
-    #     GOOS: linux darwin windows # 指定目标操作系统
-    #     GOARCH: amd64 arm64 # 指定目标架构
-    #   run: |
-    #     for os in $GOOS; do
-    #       for arch in $GOARCH; do
-    #         output_name="myapp_${os}_${arch}"
-    #         echo "Building for $os/$arch..."
-    #         GOOS=$os GOARCH=$arch bee pack -o $output_name -be GOOS=$os GOARCH=$arch
-    #       done
-    #     done
-        
-    - name: Build and package for Linux
-      # 构建并打包 Linux 版本, sqllite3 需要 CGO_ENABLED=1
+    # 构建前端应用
+    - name: Build frontend
+      working-directory: ./go_binance_futures_ui
+      run: |
+        npm install
+        npm run build
+        mv dist ../frontend_dist
+
+    # 构建后端应用
+    - name: Build backend
       run: |
         export GOOS=linux
         export GOARCH=amd64
         export CGO_ENABLED=1
-        bee pack -exr='.*.tar.gz' -a linux_amd64_feature -be GOOS=$GOOS GOARCH=$GOARCH
+        bee pack -exr='.*.tar.gz' -a backend_linux_amd64_feature -be GOOS=$GOOS GOARCH=$GOARCH
+        tar -xzf backend_linux_amd64_feature.tar.gz -C ./backend_build/
 
-    - name: Build and package for Windows
+    # 整合前端和后端
+    - name: Integrate frontend and backend
       run: |
-        export CC=x86_64-w64-mingw32-gcc
-        export CXX=x86_64-w64-mingw32-g++
-        export CGO_ENABLED=1
-        export GOOS=windows
-        export GOARCH=amd64
-        bee pack -exr='.*.tar.gz' -a windows_amd64_feature -be GOOS=$GOOS GOARCH=$GOARCH
-        
+        mkdir -p ./release_package
+        mv ./backend_build/* ./release_package/
+        mv ./frontend_dist ./release_package/static
+        cd ./release_package
+        tar -czvf unified_release.tar.gz *
+
+    # 发布到 GitHub Release
     - name: Release Tag
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
@@ -68,20 +70,6 @@ jobs:
         draft: false
         prerelease: false
         files: |
-          linux_amd64_feature.tar.gz
-          windows_amd64_feature.tar.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.WORKFLOW_PERSONAL_ACCESS_TOKEN }}
-          
-    - name: Release Master
-      uses: softprops/action-gh-release@v2
-      if: startsWith(github.ref, 'refs/heads/master')
-      with:
-        tag_name: Master
-        draft: false
-        prerelease: false
-        files: |
-          linux_amd64_feature.tar.gz
-          windows_amd64_feature.tar.gz
+          release_package/unified_release.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.WORKFLOW_PERSONAL_ACCESS_TOKEN }}
