@@ -19,10 +19,16 @@ type ConfigData struct {
 	Period        int     `json:"period"` // 周期
 	Multiplier    float64 `json:"multiplier,omitempty"` // 可选字段
 	StdDevMultiplier float64 `json:"std_dev_multiplier,omitempty"` // 可选字段
+	FastPeriod    int     `json:"fast_period,omitempty"` // MACD快线周期
+	SlowPeriod    int     `json:"slow_period,omitempty"` // MACD慢线周期
+	SignalPeriod  int     `json:"signal_period,omitempty"` // MACD信号线周期
 	Data []float64 `json:"data,omitempty"` // 可选字段
 	High []float64 `json:"high,omitempty"` // 可选字段
 	Low []float64 `json:"low,omitempty"` // 可选字段
 	Mid []float64 `json:"mid,omitempty"` // 可选字段
+	MACD []float64 `json:"macd,omitempty"` // MACD线
+	Signal []float64 `json:"signal,omitempty"` // 信号线
+	Histogram []float64 `json:"histogram,omitempty"` // 柱状图
 }
 
 type KLinePrice struct {
@@ -249,6 +255,58 @@ func ParseTechnologyConfig(symbol string, strTechnology string) (config map[stri
 				KlineInterval: item.KlineInterval,
 				Period: item.Period,
 				Data: atrArr,
+			}
+		}
+	}
+	for _, item := range technologyConfig.MACD {
+		if item.Enable {
+			klinePrice, ok := klineMap[item.KlineInterval]
+			if !ok {
+				kline, err := binance.GetKlineData(symbol, item.KlineInterval, limit)
+				if err != nil {
+					logs.Error("kline error, symbol:", symbol)
+					logs.Error("kline error in ParseTechnologyConfig:", err.Error())
+					continue
+				}
+				high, low, close, open, amount, qps := GetLineFloatValues(kline)
+				klinePrice = KLinePrice{
+					High: high,
+					Low: low,
+					Close: close,
+					Open: open,
+					Amount: amount,
+					Qps: qps,
+				}
+				klineMap[item.KlineInterval] = klinePrice
+			}
+			
+			// 使用配置的参数，如果未设置则使用默认值
+			fastPeriod := item.FastPeriod
+			if fastPeriod == 0 {
+				fastPeriod = 12 // 默认快线周期
+			}
+			slowPeriod := item.SlowPeriod
+			if slowPeriod == 0 {
+				slowPeriod = 26 // 默认慢线周期
+			}
+			signalPeriod := item.SignalPeriod
+			if signalPeriod == 0 {
+				signalPeriod = 9 // 默认信号线周期
+			}
+			
+			macdLine, signalLine, histogram, err := CalculateMACD(klinePrice.Close, fastPeriod, slowPeriod, signalPeriod)
+			if err != nil {
+				logs.Error("CalculateMACD error:", err.Error())
+				continue
+			}
+			config[item.Name] = ConfigData{
+				KlineInterval: item.KlineInterval,
+				FastPeriod: fastPeriod,
+				SlowPeriod: slowPeriod,
+				SignalPeriod: signalPeriod,
+				MACD: macdLine,
+				Signal: signalLine,
+				Histogram: histogram,
 			}
 		}
 	}

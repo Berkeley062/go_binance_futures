@@ -7,6 +7,9 @@ type IndicatorConfig struct {
 	Period        int     `json:"period"` // 周期
 	Multiplier    float64 `json:"multiplier,omitempty"` // 可选字段
 	StdDevMultiplier float64 `json:"std_dev_multiplier,omitempty"` // 可选字段
+	FastPeriod    int     `json:"fast_period,omitempty"` // MACD快线周期
+	SlowPeriod    int     `json:"slow_period,omitempty"` // MACD慢线周期
+	SignalPeriod  int     `json:"signal_period,omitempty"` // MACD信号线周期
 }
 
 // 顶层技术指标配置结构
@@ -17,6 +20,7 @@ type TechnologyConfig struct {
 	KC       []IndicatorConfig     `json:"kc"`   // 肯特纳通道
 	BOLL     []IndicatorConfig     `json:"boll"` // 布林带
 	ATR      []IndicatorConfig     `json:"atr"` // 平均真实波幅
+	MACD     []IndicatorConfig     `json:"macd"` // MACD指标
 }
 
 type StrategyConfig [] struct {

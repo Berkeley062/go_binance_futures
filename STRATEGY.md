@@ -210,6 +210,22 @@ atr1.Period // 14
 atr1.Data = [67.2, 70.3, ..] // 150 count
 ```
 
+##### macd
+
+| name  |  KlineInterval | FastPeriod  | SlowPeriod  | SignalPeriod | enable |
+| ------------ | ------------ | ------------ | ------------ | ------------ | ------------ |
+| macd_1  | 4h  | 12  | 26 | 9 | true |
+
+```
+macd_1.KlineInterval // 4h
+macd_1.FastPeriod // 12
+macd_1.SlowPeriod // 26
+macd_1.SignalPeriod // 9
+macd_1.MACD = [0.12, -0.05, ..] // 150 count, MACD line (fast EMA - slow EMA)
+macd_1.Signal = [0.08, -0.02, ..] // 150 count, Signal line (EMA of MACD line)
+macd_1.Histogram = [0.04, -0.03, ..] // 150 count, Histogram (MACD line - Signal line)
+```
+
 #### other
 
 ##### kline data

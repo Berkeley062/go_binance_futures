@@ -210,6 +210,22 @@ atr1.Period // 14
 atr1.Data = [67.2, 70.3, ..] // 150 count
 ```
 
+##### macd
+
+| 名称  |  k线类型 | 快线周期  | 慢线周期  | 信号线周期 | 启用 |
+| ------------ | ------------ | ------------ | ------------ | ------------ | ------------ |
+| macd_1  | 4h  | 12  | 26 | 9 | true |
+
+```
+macd_1.KlineInterval // 4h
+macd_1.FastPeriod // 12
+macd_1.SlowPeriod // 26
+macd_1.SignalPeriod // 9
+macd_1.MACD = [0.12, -0.05, ..] // 150 count, MACD线 (快线EMA - 慢线EMA)
+macd_1.Signal = [0.08, -0.02, ..] // 150 count, 信号线 (MACD线的EMA)
+macd_1.Histogram = [0.04, -0.03, ..] // 150 count, 柱状图 (MACD线 - 信号线)
+```
+
 #### 其它
 
 ##### k 线数据
