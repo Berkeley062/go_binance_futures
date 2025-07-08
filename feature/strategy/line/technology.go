@@ -279,3 +279,57 @@ func IsDarkCloudCover(first, second Candle) bool {
 
     return isFirstBullish && isSecondBearish && opensAboveFirstClose && closesInsideFirstBody
 }
+
+// MACD (Moving Average Convergence Divergence) 移动平均线收敛/发散指标
+// 计算MACD的三个主要组成部分：MACD线、信号线和柱状图
+// fastPeriod: 快线EMA周期 (通常为12)
+// slowPeriod: 慢线EMA周期 (通常为26) 
+// signalPeriod: 信号线EMA周期 (通常为9)
+// 返回值: macdLine(MACD线), signalLine(信号线), histogram(柱状图)
+func CalculateMACD(prices []float64, fastPeriod, slowPeriod, signalPeriod int) (macdLine, signalLine, histogram []float64, err error) {
+	if len(prices) < slowPeriod {
+		return nil, nil, nil, fmt.Errorf("insufficient data for MACD calculation, need at least %d prices", slowPeriod)
+	}
+	
+	if fastPeriod >= slowPeriod {
+		return nil, nil, nil, fmt.Errorf("fast period (%d) must be less than slow period (%d)", fastPeriod, slowPeriod)
+	}
+
+	// 计算快线EMA和慢线EMA
+	fastEMA, err := CalculateExponentialMovingAverage(prices, fastPeriod)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("error calculating fast EMA: %v", err)
+	}
+	
+	slowEMA, err := CalculateExponentialMovingAverage(prices, slowPeriod)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("error calculating slow EMA: %v", err)
+	}
+
+	// 确保两个EMA数组长度一致，取较短的长度
+	minLen := len(slowEMA)
+	if len(fastEMA) < minLen {
+		minLen = len(fastEMA)
+	}
+	
+	// 计算MACD线 (快线EMA - 慢线EMA)
+	macdLine = make([]float64, minLen)
+	for i := 0; i < minLen; i++ {
+		macdLine[i] = fastEMA[i] - slowEMA[i]
+	}
+
+	// 计算信号线 (MACD线的EMA)
+	signalLine, err = CalculateExponentialMovingAverage(macdLine, signalPeriod)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("error calculating signal line: %v", err)
+	}
+
+	// 计算柱状图 (MACD线 - 信号线)
+	histogramLen := len(signalLine)
+	histogram = make([]float64, histogramLen)
+	for i := 0; i < histogramLen; i++ {
+		histogram[i] = macdLine[i] - signalLine[i]
+	}
+
+	return macdLine, signalLine, histogram, nil
+}
